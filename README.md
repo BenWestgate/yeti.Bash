@@ -9,4 +9,4 @@ Requires no dependences outside of bitcoin core v0.21 and uses only standard cor
 
 Seed words are backed up in a format 100% compatible with Yeti Wallets.
 
-(Find original here: https://github.com/JWWeatherman/yeticold)
+Find original here: https://github.com/JWWeatherman/yeticold
