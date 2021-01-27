@@ -12,6 +12,8 @@ read -n1
 m=3		# yeti wallet recommended value of 3 for the spending threshold
 n=7		# yeti wallet recommened value of 7 for the number of signers
 
+# Seed Generation and Descriptor Creation
+
 echo "wsh(multi($m," >descriptor			# form beginning of pay-to-witness-script-hash multisig descriptor with spend threshold m signatures, save string as descriptor
 for ((i = 1 ; i <= $n ; i++)); do			# loop thru idented steps n times
 	./bitcoin-cli createwallet $i			#create a wallet
@@ -21,12 +23,16 @@ for ((i = 1 ; i <= $n ; i++)); do			# loop thru idented steps n times
 	sed -i s/$/$(cat xprv$i)"\/*,"/ descriptor	#append "xprv/*," to descriptor
 	done; wait
 sed -i s/.$/"))"/ descriptor; wait			#replace last character , of string with )) to close parentheses from wsh(multi( and finish descriptor
- 
+
+# Get canonical xpub descriptor form, then create and backup the Watch-only wallet
+
 ./bitcoin-cli getdescriptorinfo "$(<descriptor)" |sed '2q;d'|cut -d '"' -f4 >descriptor		# getdescriptorinfo returns the descriptor in canonical form without private keys, trim, save as descriptor
 ./bitcoin-cli createwallet "pubwallet" true true "" true true true				# create blank descriptor wallet pubwallet.dat, disable prv keys for Watch-Only, no passphrase, avoid address reuse true, load on start-up true
 ./bitcoin-cli -rpcwallet="pubwallet" importdescriptors '[{"desc": "'$(<descriptor)'", "timestamp": "now", "active": true}]'		# import descriptor, scan from current block, set as active descriptor
 ./bitcoin-cli -rpcwallet="pubwallet" backupwallet pubwallet		# backup watch-only wallet as pubwallet.dat
-	
+
+# Get individual xpubs so they can be replaced one by one with corresponding xprv in descriptors for the n private key containing wallets and their backups
+
 for ((i = 1 ; i <= $n ; i++)); do		# loop thru indented n times
 	cut -d "," -f$((i+1)) <descriptor|head -c111 >xpub$i		# chop descriptor apart by commas, find each xpub starting in field 2, trim to xpub data, save as xpub
 	sed "s/$(cat xpub$i)/$(cat xprv$i)/" descriptor|cut -d "#" -f1 >desc_with_xprv$i		# replace xpub with xprv in descriptor, remove checksum, save as desc_with_xprv
@@ -36,7 +42,8 @@ for ((i = 1 ; i <= $n ; i++)); do		# loop thru indented n times
 	./bitcoin-cli -rpcwallet=xprvwallet$i backupwallet xprvwallet$i			# backup wallet to xprvwallet .dat
 	done
 
-#display & check WIF NATO format
+# Display WIF NATO seeds and Confirm they are written down correctly
+
 echo {1..9} {A..H} {J..N} {P..Z} {a..k} {m..z} | sed 's/ //g' >base58alphabet		# create base58 alphabet, remove spaces between characters, save as base58alphabet
 echo "ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE ALPHA BRAVO CHARLIE DELTA ECHO FOXTROT GOLF HOTEL JULIET KILO LIMA MIKE NOVEMBER PAPA QUEBEC ROMEO SIERRA TANGO UNIFORM VICTOR WHISKEY X-RAY YANKEE ZULU alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo mike november oscar papa quebec romeo sierra tango uniform victor whiskey x-ray yankee zulu" >toNATO	# save the NATO corresponding to base58alphabet as toNATO
 
@@ -96,7 +103,9 @@ displayCheckSeed() {
 for  ((i = 1 ; i <= n ; i++)); do	# loop thru seed display and check n times
 	displayCheckSeed		# calls above function in curly braces
 	done
-	
+
+# Display Descriptor and a test Deposit Address
+
 echo -e "\n\nThis is your Descriptor:\n\n$(<descriptor)\n\nYou will need it to spend or watch the balance of your wallet.\n\nPrint $n copies of descriptor.txt located in your home/bitcoin/bin/ folder and store a copy with each handwritten WIF NATO seed.\n\nWhen you have verified all printed copies are legible, Press Any Key to continue."
 read -n1	# waits for any key press while user prints
 clear		# clears screen
