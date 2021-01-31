@@ -20,7 +20,7 @@ for ((i = 1 ; i <= $n ; i++)); do			# loop thru idented steps n times
 	./bitcoin-cli -rpcwallet=$i dumpwallet $i	# dump the wallet to a walletdump file, this contains xprv and seed
 	sed '6q;d' $i|tail -c112 >xprv$i		# find line 6 in file, trim line to xprv data, save as xprv
 	grep "hdseed=1" $i|head -c52 >seed$i		#search for line with hdseed, trims line to WIF seed, save as seed
-	sed -i s/$/$(cat xprv$i)"\/*,"/ descriptor	#append "xprv/*," to descriptor
+	sed -i s/$/$(<xprv$i)"\/*,"/ descriptor		#append "xprv/*," to descriptor
 	done; wait
 sed -i s/.$/"))"/ descriptor; wait			#replace last character , of string with )) to close parentheses from wsh(multi( and finish descriptor
 
@@ -35,10 +35,10 @@ sed -i s/.$/"))"/ descriptor; wait			#replace last character , of string with ))
 
 for ((i = 1 ; i <= $n ; i++)); do		# loop thru indented n times
 	cut -d "," -f$((i+1)) <descriptor|head -c111 >xpub$i		# chop descriptor apart by commas, find each xpub starting in field 2, trim to xpub data, save as xpub
-	sed "s/$(cat xpub$i)/$(cat xprv$i)/" descriptor|cut -d "#" -f1 >desc_with_xprv$i		# replace xpub with xprv in descriptor, remove checksum, save as desc_with_xprv
+	sed "s/$(<xpub$i)/$(<xprv$i)/" descriptor|cut -d "#" -f1 >desc_with_xprv$i	# replace xpub with xprv in descriptor, remove checksum, save as desc_with_xprv
 	sed -i s/$/#$(./bitcoin-cli getdescriptorinfo "$(cat desc_with_xprv$i)"|sed '3q;d'|cut -d \" -f4)/ desc_with_xprv$i		# call getdescriptorinfo, get line 3, cut by ", select field 4 which is checksum, append #checksum to desc_with_xprv
 	./bitcoin-cli createwallet "xprvwallet$i" false true "" false true true		# create blank descriptor wallet xprvwallet, disable private keys false, no passphrase, avoid address reuse false, load on startup true
-	./bitcoin-cli -rpcwallet=xprvwallet$i importdescriptors '[{"desc": "'$(cat desc_with_xprv$i)'", "timestamp": "now", "active": true}]'		# import desc_with_xprv to above wallet, scan from now, set as active descriptor in this wallet
+	./bitcoin-cli -rpcwallet=xprvwallet$i importdescriptors '[{"desc": "'$(<desc_with_xprv$i)'", "timestamp": "now", "active": true}]'		# import desc_with_xprv to above wallet, scan from now, set as active descriptor in this wallet
 	./bitcoin-cli -rpcwallet=xprvwallet$i backupwallet xprvwallet$i			# backup wallet to xprvwallet .dat
 	done
 
@@ -86,12 +86,12 @@ displayCheckSeed() {
 		((j++))
 	done
 	
-	while [ "$(cat retry)" == "fail" ]; do		# when retry is equal to "fail"...
+	while [ "$(<retry)" == "fail" ]; do		# when retry is equal to "fail"...
 		echo ''; read -n52 -e -p "Try Again: "; wait; echo ''		# read 52 characters of input again
 		j=1; echo '' >retry			# reset counter and save empty string to retry
 		cat seed$i| while read -n1 letter; do	# loop thru each letter of seed again, assign to letter
 			if [ "$letter" != "$(echo $REPLY|cut -c$(($j)))" ];
-				then echo -e "Word $j does not match. Check Row "$(((j-1)/4+1))", Column "$(((j-1)%4+1))"."; echo 'fail'>retry
+				then echo -e "Word $j does not match. Check Row "$(((j-1)/4+1))", Column "$(((j-1)%4+1))"."; echo "fail" >retry
 			fi
 			((j++))
 		done
