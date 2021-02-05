@@ -20,7 +20,7 @@ echo -e "\nGenerating $n Wallets, please wait...\n"
 # Seed Generation and Descriptor Creation
 
 echo "wsh(multi($m," >xprv_desc				# form beginning of pay-to-witness-script-hash multisig descriptor with spend threshold m signatures, save string as descriptor
-for ((i = 1 ; i <= n ; i++)); do			# loop thru idented steps n times
+for (( i = 1 ; i <= n ; i++ )); do			# loop thru idented steps n times
 	./bitcoin-cli createwallet $i			#create a wallet
 	./bitcoin-cli -rpcwallet=$i dumpwallet $i	# dump the wallet to a walletdump file, this contains xprv and seed
 	sed '6q;d' $i | tail -c112 >xprv$i		# find line 6 in file, trim line to xprv data, save as xprv
@@ -39,9 +39,9 @@ sed -i s/.$/"))"/ xprv_desc; wait			#replace last character , of string with )) 
 # Get individual xpubs so they can be replaced one by one with corresponding xprv in descriptors for the n private key containing wallets and their backups
 
 for (( i = 1 ; i <= $n ; i++ )); do		# loop thru indented n times
-	cut -d "," -f$((i+1)) <descriptor | head -c111 >xpub$i		# chop descriptor apart by commas, find each xpub starting in field 2, trim to xpub data, save as xpub
+	cut -d "," -f$(( i + 1 )) < descriptor | head -c111 >xpub$i		# chop descriptor apart by commas, find each xpub starting in field 2, trim to xpub data, save as xpub
 	sed "s/$(<xpub$i)/$(<xprv$i)/" descriptor | cut -d "#" -f1 >desc_with_xprv$i	# replace xpub with xprv in descriptor, remove checksum, save as desc_with_xprv
-	sed -i s/$/#$(./bitcoin-cli getdescriptorinfo "$(cat desc_with_xprv$i)"|sed '3q;d'|cut -d \" -f4)/ desc_with_xprv$i		# call getdescriptorinfo, get line 3, cut by ", select field 4 which is checksum, append #checksum to desc_with_xprv
+	sed -i s/$/#$(./bitcoin-cli getdescriptorinfo "$(<desc_with_xprv$i)"|sed '3q;d'|cut -d \" -f4)/ desc_with_xprv$i		# call getdescriptorinfo, get line 3, cut by ", select field 4 which is checksum, append #checksum to desc_with_xprv
 	./bitcoin-cli createwallet "xprvwallet$i" false true "" false true true		# create blank descriptor wallet xprvwallet, disable private keys false, no passphrase, avoid address reuse false, load on startup true
 	./bitcoin-cli -rpcwallet=xprvwallet$i importdescriptors '[{"desc": "'$(<desc_with_xprv$i)'", "timestamp": "now", "active": true}]'		# import desc_with_xprv to above wallet, scan from now, set as active descriptor in this wallet
 	./bitcoin-cli -rpcwallet=xprvwallet$i backupwallet xprvwallet$i			# backup wallet to xprvwallet .dat
@@ -52,10 +52,10 @@ for (( i = 1 ; i <= $n ; i++ )); do		# loop thru indented n times
 echo {1..9} {A..H} {J..N} {P..Z} {a..k} {m..z} | sed 's/ //g' >base58alphabet		# create base58 alphabet, remove spaces between characters, save as base58alphabet
 echo "ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE ALPHA BRAVO CHARLIE DELTA ECHO FOXTROT GOLF HOTEL JULIET KILO LIMA MIKE NOVEMBER PAPA QUEBEC ROMEO SIERRA TANGO UNIFORM VICTOR WHISKEY X-RAY YANKEE ZULU alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo mike november oscar papa quebec romeo sierra tango uniform victor whiskey x-ray yankee zulu" >toNATO	# save the NATO corresponding to base58alphabet as toNATO
 
-displayCheckSeed() {
+paper_seed() {
 
 	for letter in $(sed 's/./& /g' seed$i); do		# loop thru each character of seed, assign that character to letter, the sed command spaces the digits so each is considered individually
-		echo $(( $(expr index $(< base58alphabet) $letter) - 1 ))		# find index (position) of letter in base58alphabet, subtract 1 from result so output ranges from 0-57
+		echo $(( $(expr index $(<base58alphabet) $letter) - 1 ))		# find index (position) of letter in base58alphabet, subtract 1 from result so output ranges from 0-57
 		done >WIFnum$i		# save list of numbers as WIFnum
 		
 	j=1; sum=0		# j is now the counter since this will be used inside another loop, sum keeps track of the sum of the base 58 values for creating a 5th checksum column in seed words for yeti compatibility and error recovery
@@ -78,14 +78,14 @@ displayCheckSeed() {
 		(( j++ ))
 		done | column -s ' ' -t
 	echo -e "\n\nWrite these 65 words down (case-sensitive) and Label them \"Seed $i\".\n\nWhen you are finished press Enter."; read -n1 -e; clear		# prompt user to hand-write, wait for any key press, then clear terminal so they must type from paper backup
-	echo -e 'Confirm you have Written Down your seed words Correctly\n\nCover up the 5th Column of your written seed words. You will Type the First Letter of each word and all numbers as the Numeral. Start on line 1, left to right and continue through all rows until done.\n\n\tLIMA    ONE     victor  echo\n\tFOXTROT romeo   THREE   ECHO\n\nWould for example be entered as:  L1veFr3E\n\nInput on one line below without spaces and when finished press Enter.\n\n'
+	echo -e 'Confirm you have Written Down your seed words Correctly\n\nCover up the 5th Column of your written seed words. Type all Number Words as the Numeral, otherwise type the First Letter of each word. Start on line 1, left to right and continue through all rows until done.\n\n\tLIMA    ONE     victor  echo\n\tFOXTROT romeo   THREE   ECHO\n\nWould for example be entered as:  L1veFr3E\n\nInput on one line below without spaces and when finished press Enter.\n\n'
 	read -n52 -e -p "WIF Seed $i: "; wait; echo ''		# reads 52 characters of input then continues to next line
 	
 	j=1; echo '' >retry		# empty string saved as retry, this is a flag thrown for typos
 	
 	cat seed$i | while read -n1 letter; do		# loop thru each letter of seed, assign to letter
-		if [ "$letter" != "$(echo $REPLY | cut -c$j)" ];		# if the letter does not match the user's input...
-			then echo -e "Word $j does not match. Check Row "$(( (j - 1) / 4 + 1 ))", Column "$(( (j - 1) % 4 + 1 ))"."		# error message prints word number and location that don't match the seed
+		if [ "$letter" != "$(echo $REPLY | cut -c$j)" ]; then		# if the letter does not match the user's input...
+			echo "Word $j does not match. Check Row $(( (j - 1) / 4 + 1 )), Column $(( (j - 1) % 4 + 1 ))."		# error message prints word number and location that don't match the seed
 			echo "fail" >retry		# save string "fail" as retry
 		fi
 		(( j++ ))
@@ -95,18 +95,18 @@ displayCheckSeed() {
 		echo ''; read -n52 -e -p "Try Again: "; wait; echo ''		# read 52 characters of input again
 		j=1; echo '' >retry			# reset counter and save empty string to retry
 		cat seed$i | while read -n1 letter; do	# loop thru each letter of seed again, assign to letter
-			if [ "$letter" != "$(echo $REPLY | cut -c$j)" ];
-				then echo -e "Word $j does not match. Check Row "$(( (j - 1) / 4 + 1 ))", Column "$(( (j - 1) % 4 + 1 ))"."; echo "fail" >retry
+			if [ "$letter" != "$(echo $REPLY | cut -c$j)" ]; then
+				echo "Word $j does not match. Check Row $(( (j - 1) / 4 + 1 )), Column $(( (j - 1) % 4 + 1 ))."
+				echo "fail" >retry
 			fi
 			(( j++ ))
 		done
 	done
 	echo -e "\nWIF Seed $i Matches."
-	
 }
 
 for  (( i = 1 ; i <= n ; i++ )); do	# loop thru seed display and check n times
-	displayCheckSeed		# calls above function in curly braces
+	paper_seed			# calls function paper_seed()
 	done
 
 # Display Descriptor and a test Deposit Address
