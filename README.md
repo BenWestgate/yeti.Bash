@@ -13,7 +13,8 @@ Seed words are backed up in a format 100% compatible with Yeti Wallets
 
 Find original here: https://github.com/JWWeatherman/yeticold
 
-Instructions for Use:
+
+How to Use:
 
 Put CreateWallet.sh in bitcoin/bin folder
 
@@ -27,4 +28,5 @@ Enter "chmod +x CreateWallet.sh"
 
 Enter ./CreateWallet.sh and follow instructions on screen.
 
-To make a Multisignature wallet with a different m of n than 3 of 7, follow instructions above but for CustomWallet.sh rather than CreateWallet.sh
+
+To make a non 3-of-7 Multisignature wallet, use instructions above with CustomWallet.sh not CreateWallet.sh
