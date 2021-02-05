@@ -11,12 +11,10 @@ echo -e "Custom Bitcoin Multi-signature Wallet Generator by Westgate Labs, LLC.\
 read -n1
 clear
 echo -e "Choose Wallet Spend Threshold and Total Keys\n\nMultisig wallets have an m-of-n form, where m stands for number of signatures required to spend funds and n stands for maximum number of keys that are permitted to sign.\n\nHow many secure, geographically distributed (5+ miles apart) back-up locations do you have to store keys at? (Recommended value is 7.)\n"
-read -p "n="
-n=$REPLY		# assign input to variable n, yeti wallet recommends 7 for number of signers
+read -p "n=" n		# assign input to variable n, yeti wallet recommends 7 for number of signers
 echo ''
 echo -e "How many keys do you wish to be required to spend funds? Value for m must be less than or equal to n. (Recommended value is 3.)\n"
-read -p "m="
-m=$REPLY		# assign input to variable m, yeti wallet recommends 3 for spending threshold
+read -p "m=" m		# assign input to variable m, yeti wallet recommends 3 for spending threshold
 echo -e "\nGenerating $n Wallets, please wait...\n"
 
 # Seed Generation and Descriptor Creation
