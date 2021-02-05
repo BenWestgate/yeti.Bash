@@ -16,10 +16,15 @@ Find original here: https://github.com/JWWeatherman/yeticold
 Instructions for Use:
 
 Put CreateWallet.sh in bitcoin/bin folder
+
 Right-click in folder, select "Open in Terminal"
+
 Enter ./bitcoind
+
 Open a new Terminal
+
 Enter "chmod +x CreateWallet.sh"
+
 Enter ./CreateWallet.sh and follow instructions on screen.
 
-To make a Multisignature wallet with a different m of n than 3 of 7, follow the above instructions but for CustomWallet.sh rather than CreateWallet.sh, this will break Yeti compatibility.
+To make a Multisignature wallet with a different m of n than 3 of 7, follow instructions above but for CustomWallet.sh rather than CreateWallet.sh
