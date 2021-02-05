@@ -15,12 +15,11 @@ Find original here: https://github.com/JWWeatherman/yeticold
 
 Instructions for Use:
 
-place CreateWallet.sh in the /bitcoin-0.21.0/bin/ folder
-Right click empty space in this folder, select "Open in Terminal"
+Put CreateWallet.sh in bitcoin/bin folder
+Right-click in folder, select "Open in Terminal"
 Enter ./bitcoind
-Open a new terminal
-If on ubunutu enter "chmod +x CreateWallet.sh" otherwise skip
-Type ./CreateWallet.sh and follow instructions on screen.
-If you get stuck closing, the terminal and starting over will use the same wallet seeds unless you have wiped your .bitcoin/wallets folder and removed wallet dump files from your /bitcoin-0.21.0/bin/ folder
+Open a new Terminal
+Enter "chmod +x CreateWallet.sh"
+Enter ./CreateWallet.sh and follow instructions on screen.
 
-To make a wallet with a different m of n than 3 of 7 (yeti recommeneded values for long-term storage by a single person) follow the above instructions but for CustomWallet.sh rather than CreateWallet.sh
+To make a Multisignature wallet with a different m of n than 3 of 7, follow the above instructions but for CustomWallet.sh rather than CreateWallet.sh, this will break Yeti compatibility.
