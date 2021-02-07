@@ -9,7 +9,7 @@ Requires no dependences outside of bitcoin core and uses only standard gnu comma
 
 Suitable for Storing $50k to $20M of Bitcoin when executed on a clean always offline PC from a Linux Live OS.  (currently tested on Ubuntu 20.04 LTS, Xubuntu, Manjaro)
 
-Seed words are backed up in a format 100% compatible with Yeti Wallets
+Seed words are backed up on paper in a format 100% compatible with Yeti Wallets
 
 Find original here: https://github.com/JWWeatherman/yeticold
 
