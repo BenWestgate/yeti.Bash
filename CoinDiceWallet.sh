@@ -123,7 +123,7 @@ add_rand() {
 	for letter in $(sed 's/./& /g' seed$i); do		# loop thru each character of seed, assign that character to letter, the sed command spaces the digits so each is considered individually
 		echo -n ' '$(( $(expr index $(< base58_alphabet) $letter) - 1 ))		# find index (position) of letter in base58_alphabet, subtract 1 from result so output ranges from 0-57
 	done > seedNum$i		# save list of numbers as WIFnum
-	j=$(wc -c < seed$i)		#set decrementor to number of characters in seed, 52
+	j=$(wc -c < seed$i)		# set decrementor to number of characters in seed, 52
 	for num in $(< seedNum$i); do
 		(( j-- ))
 		echo "$num*58^$j" | BC_LINE_LENGTH=0 bc
@@ -157,7 +157,7 @@ add_rand() {
 	echo $(< XOR$i)
 	echo 'obase=16;ibase=2;'$(< XOR$i) | BC_LINE_LENGTH=0 bc > XOR_hex$i
 	echo 'obase=16;ibase=16;'$(< XOR_hex$i)'*100+'$(< format) | BC_LINE_LENGTH=0 bc > privkey$i
-	#WIF seeds have format: a leading 0x80 byte, 32 entropy bytes, a 0x01 byte for compressed public keys, and then 4 checksum bytes which are the leading 4 bytes of the preceeding.
+	# WIF seeds have format: a leading 0x80 byte, 32 entropy bytes, a 0x01 byte for compressed public keys, and then 4 checksum bytes which are the leading 4 bytes of the preceeding.
 	echo -n $(< privkey$i) > privkeycheck$i
 	echo -n $(xxd -r -p privkey$i | sha256sum | xxd -r -p | sha256sum | cut -b1-8 | tr a-z A-Z) >> privkeycheck$i
 	hex_WIF=$(< privkeycheck$i)
@@ -187,29 +187,29 @@ read -p "Add randomness with: " user_rand
 if [ "$user_rand" == "dice" ]; then
 	echo -e "\nHow many faces do your dice have?"
 	read faces
-	rolls=$(echo "256 * l(2) / l($faces)+.99999999" | bc -l | cut -d"." -f1)		#calculates number of rolls to reach 256 bits entropy depending on faces of die.
+	rolls=$(echo "256 * l(2) / l($faces)+.99999999" | bc -l | cut -d"." -f1)		# calculates number of rolls to reach 256 bits entropy depending on faces of die.
 	num_shift=$(echo {0..9} {A..Z})		# sequence of all numbers that may be entered for dice so I can shift each roll entered one the left since dice faces start at 1 not 0  
 elif [ "$user_rand" == "coins" ]; then
 	faces=2
 else 
-	filename=''		#original seed and wallet dump will be used to generate wallet since no randomness will be added
+	filename=''		# original seed and wallet dump will be used to generate wallet since no randomness will be added
 fi
-		#generate seeds and add its xprv to xprv_desc descriptor file and confirm each seed was written down one by one.
+		# generate seeds and add its xprv to xprv_desc descriptor file and confirm each seed was written down one by one.
 for (( i = 1 ; i <= n ; i++ )); do			# loop thru idented steps n times
 	echo -e "\n\nCreating Seed $i..."
-	./bitcoin-cli createwallet $i			#create a wallet
+	./bitcoin-cli createwallet $i			# create a wallet
 	./bitcoin-cli -rpcwallet=$i dumpwallet $i	# dump the wallet to a walletdump file, this contains xprv and seed
-	grep "hdseed=1" $i | head -c52 > seed$i	#search for line with hdseed, trims line to WIF seed, save as seed
+	grep "hdseed=1" $i | head -c52 > seed$i	# search for line with hdseed, trims line to WIF seed, save as seed
 	if [ "$user_rand" != "" ]; then
 		add_rand
 		echo -e "\n\nSetting New HD Seed $i..."
-		./bitcoin-cli createwallet new_$i false true "" false false false		#create a new blank wallet, do not load on startup
-		./bitcoin-cli -rpcwallet=new_$i sethdseed true $(< new_seed$i)		#sets the HD seed of this wallet to HD seed created by combining user randomness with original seed.  Will fail if new seed is not random enough (for example xoring original randomness with itself to get all 0s)
+		./bitcoin-cli createwallet new_$i false true "" false false false		# create a new blank wallet, do not load on startup
+		./bitcoin-cli -rpcwallet=new_$i sethdseed true $(< new_seed$i)		# sets the HD seed of this wallet to HD seed created by combining user randomness with original seed.  Will fail if new seed is not random enough (for example xoring original randomness with itself to get all 0s)
 		./bitcoin-cli -rpcwallet=new_$i dumpwallet new_$i
-		filename='new_'		#tell program to use new wallet dump and new seed files to get extended private keys and seed from
+		filename='new_'		# tell program to use new wallet dump and new seed files to get extended private keys and seed from
 	fi
 	sed '6q;d' $filename$i | tail -c112 > xprv$i		# find line 6 in wallet dump file, trim line to xprv data, save as xprv
-	sed -i s/$/$(< xprv$i)"\/*,"/ xprv_desc		#append "xprv/*," to descriptor
+	sed -i s/$/$(< xprv$i)"\/*,"/ xprv_desc		# append "xprv/*," to descriptor
 	paper_backup
 done
 
