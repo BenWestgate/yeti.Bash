@@ -29,4 +29,7 @@ Enter "chmod +x CreateWallet.sh"
 Enter ./CreateWallet.sh and follow instructions on screen.
 
 
-To make a non 3-of-7 Multisignature wallet, use instructions above with CustomWallet.sh not CreateWallet.sh
+To make a non 3-of-7 multisig wallet, use instructions above with CustomWallet.sh not CreateWallet.sh
+
+
+To make a multisig wallet with additional randomness from coin flips or dice rolls, use instructions above with CoinDiceWallet.sh 
