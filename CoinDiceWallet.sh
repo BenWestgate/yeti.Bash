@@ -124,19 +124,19 @@ add_rand() {
 		echo -n ' '$(( $(expr index $(< base58_alphabet) $letter) - 1 ))		# find index (position) of letter in base58_alphabet, subtract 1 from result so output ranges from 0-57
 	done > seedNum$i		# save list of numbers as WIFnum
 	j=$(wc -c < seed$i)		# set decrementor to number of characters in seed, 52
-	for num in $(< seedNum$i); do
-		(( j-- ))
-		echo "$num*58^$j" | BC_LINE_LENGTH=0 bc
-	done | paste -sd+ | BC_LINE_LENGTH=0 bc > bigNum$i
-	echo 'obase=16;ibase=A;'$(< bigNum$i) | BC_LINE_LENGTH=0 bc > ExtendedPrivKey$i
-	hex_WIF=$(< ExtendedPrivKey$i)
-	echo 'obase=2;ibase=16;'$(< ExtendedPrivKey$i) | BC_LINE_LENGTH=0 bc | cut -c9-264 > RandomnessFromCore$i
+	for num in $(< seedNum$i); do	# for number in seedNum do...
+		(( j-- ))		# decrement
+		echo "$num*58^$j" | BC_LINE_LENGTH=0 bc		# echo num * 58 ^ j to console
+	done | paste -sd+ | BC_LINE_LENGTH=0 bc > bigNum$i	# sum all lines on console, save as bigNum
+	echo 'obase=16;ibase=A;'$(< bigNum$i) | BC_LINE_LENGTH=0 bc > ExtendedPrivKey$i		# convert bigNum to base16, save as ExtendedPrivKey
+	hex_WIF=$(< ExtendedPrivKey$i)		# store ExtendedPrivKey in variable hex_WIF
+	echo 'obase=2;ibase=16;'$(< ExtendedPrivKey$i) | BC_LINE_LENGTH=0 bc | cut -c9-264 > RandomnessFromCore$i		# convert ExtendedPrivKey to binary, remove format and checksum bytes, save as RandomnessFromCore
 	echo -e "\nSeed $i from Bitcoin Core\n\nWIF Format:           $(< seed$i)\nBase58 Decoded:      $(< seedNum$i)\nBase16 Decoded:       ${hex_WIF:0:2}  ${hex_WIF:2:64}  ${hex_WIF:66:2} ${hex_WIF:68}\nSeed $i Randomness:    $(< RandomnessFromCore$i)"
 
 	if [ "$user_rand" == "coins" ]; then
 		echo -e "\nEnter coin flips below on one line, without spaces, in exact sequence they were flipped, input tails as 0 and heads as 1.\n"
 		read -n 256 -p "Input 256 Coin Flips: "
-		echo -n $REPLY > user_entropy$i
+		echo -n $REPLY > user_entropy$i		# get coin flips from user
 		echo -e -n "\n\nSeed $i ⊕  Coin Flips: "
 	else
 		echo -e "\nEnter Dice Rolls below on one line, without spaces, in exact sequence they were rolled, input the number rolled, 1 through $faces.\n"
@@ -144,28 +144,28 @@ add_rand() {
 			echo -e "If the number is 10 Use CapsLock to type 'A', 11 B, 12 C, 13 D, 14 E, 15 F, 16 G, 17 H, 18 I, 19 J, 20 K, ... \n"
 		fi		
 		read -n $rolls -e -p "Input $rolls Dice Rolls: "
-		for (( j = 0; j<${#REPLY}; j++ )); do
-			echo -n -e $( echo $num_shift | cut -c$(( $( expr index "$num_shift" "${REPLY:$j:1}" ) - 2 )) )
-		done > base"$faces"rolls$i
-		unpadded_entropy=$(echo "obase=2;ibase=$faces; $(< base"$faces"rolls$i)" | BC_LINE_LENGTH=0 bc)
-		echo "obase=2;ibase=2;$unpadded_entropy + $base2_format" | BC_LINE_LENGTH=0 bc  | tail -c257 | head -c256 > user_entropy$i
+		for (( j = 0; j<${#REPLY}; j++ )); do		# for j=0 thru length of REPLY-1 do...
+			echo -n -e $( echo $num_shift | cut -c$(( $( expr index "$num_shift" "${REPLY:$j:1}" ) - 2 )) )		# decrease all inputs by 1, 1>0, A>9, D>C etc
+		done > base"$faces"rolls$i		# save as base6rolls for example if a D6 die was used.
+		unpadded_entropy=$(echo "obase=2;ibase=$faces; $(< base"$faces"rolls$i)" | BC_LINE_LENGTH=0 bc)		# convert rolls to binary
+		echo "obase=2;ibase=2;$unpadded_entropy + $base2_format" | BC_LINE_LENGTH=0 bc  | tail -c257 | head -c256 > user_entropy$i		# add base2_format to preserve leading zeros, then trim to least significant 256 bits
 		echo -e "\nBase2 Encoded Rolls:  "$(< user_entropy$i)
 		echo -e -n "\nSeed $i ⊕  Dice Rolls: "
 	fi
 	
-	XOR $(< user_entropy$i) $(< RandomnessFromCore$i) > XOR$i
+	XOR $(< user_entropy$i) $(< RandomnessFromCore$i) > XOR$i		# user_entropy XOR RandomnessFromCore, save as XOR
 	echo $(< XOR$i)
-	echo 'obase=16;ibase=2;'$(< XOR$i) | BC_LINE_LENGTH=0 bc > XOR_hex$i
-	echo 'obase=16;ibase=16;'$(< XOR_hex$i)'*100+'$(< format) | BC_LINE_LENGTH=0 bc > privkey$i
+	echo 'obase=16;ibase=2;'$(< XOR$i) | BC_LINE_LENGTH=0 bc > XOR_hex$i		# convert XOR to hexadecimal, save as XOR_hex
+	echo 'obase=16;ibase=16;'$(< XOR_hex$i)'*100+'$(< format) | BC_LINE_LENGTH=0 bc > privkey$i		# prepend and append formatting bytes, saves as privkey
 	# WIF seeds have format: a leading 0x80 byte, 32 entropy bytes, a 0x01 byte for compressed public keys, and then 4 checksum bytes which are the leading 4 bytes of the preceeding.
-	echo -n $(< privkey$i) > privkeycheck$i
-	echo -n $(xxd -r -p privkey$i | sha256sum | xxd -r -p | sha256sum | cut -b1-8 | tr a-z A-Z) >> privkeycheck$i
-	hex_WIF=$(< privkeycheck$i)
-	echo 'obase=58;ibase=16;'$(< privkeycheck$i) | BC_LINE_LENGTH=0 bc > base58key$i
+	echo -n $(< privkey$i) > privkeycheck$i		# saves privkey to privkeycheck
+	echo -n $(xxd -r -p privkey$i | sha256sum | xxd -r -p | sha256sum | cut -b1-8 | tr a-z A-Z) >> privkeycheck$i		# appends checksum to privkeycheck
+	hex_WIF=$(< privkeycheck$i)		# store privkeycheck in variable hex_WIF
+	echo 'obase=58;ibase=16;'$(< privkeycheck$i) | BC_LINE_LENGTH=0 bc > base58key$i		# convert privkeycheck to base58, save as base58key
 	for digit in $(< base58key$i); do
-		echo -n $(cut -b$((10#$digit+1)) base58_alphabet)
-	done > new_seed$i
-	echo -e "Base16 Encoded:       ${hex_WIF:0:2}  ${hex_WIF:2:64}  ${hex_WIF:66:2} ${hex_WIF:68}\nBase58 Encoded:      $(< base58key$i)\nWIF format:            $(sed 's/./&  /g' new_seed$i)"
+		echo -n $(cut -b$((10#$digit+1)) base58_alphabet)		# gets the base58 alphabet character for each digit in base58key, prints on same line
+	done > new_seed$i		# saves string to new_seed
+	echo -e "Base16 Encoded:       ${hex_WIF:0:2}  ${hex_WIF:2:64}  ${hex_WIF:66:2} ${hex_WIF:68}\nBase58 Encoded:      $(< base58key$i)\nWIF format:            $(sed 's/./&  /g' new_seed$i)"		# new_seed is spaced to line up with base58key and be uncopy pasteable to next step
 }
 
 
@@ -213,7 +213,7 @@ for (( i = 1 ; i <= n ; i++ )); do			# loop thru idented steps n times
 	paper_backup
 done
 
-# Get canonical xpub descriptor form, then create and backup the Watch-only wallet TODO descriptor forms improperly when using dice rolls, test if fresh folders fixes first.
+# Get canonical xpub descriptor form, then create and backup the Watch-only wallet
 
 sed -i s/.$/"))"/ xprv_desc		# replace last character , of string with )) to close parentheses from wsh(multi( and finish xprv descriptor
 wait
