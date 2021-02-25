@@ -68,7 +68,7 @@ Open bitcoin core, create a blank, Non-descriptor wallet with private keys enabl
 
 Ctrl+T, then type
 
-sethdseed "the seed"
+sethdseed true "the seed"
 
 dumpwallet privkey1
 
