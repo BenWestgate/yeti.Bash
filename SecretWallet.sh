@@ -9,7 +9,7 @@
 base58_alphabet=$(echo {1..9} {A..H} {J..N} {P..Z} {a..k} {m..z} | sed 's/ //g')
 # store the NATO Alphabet corresponding to base58_alphabet as array to_nato
 to_nato=('ONE' 'TWO' 'THREE' 'FOUR' 'FIVE' 'SIX' 'SEVEN' 'EIGHT' 'NINE' 'ALPHA' 'BRAVO' 'CHARLIE' 'DELTA' 'ECHO' 'FOXTROT' 'GOLF' 'HOTEL' 'JULIET' 'KILO' 'LIMA' 'MIKE' 'NOVEMBER' 'PAPA' 'QUEBEC' 'ROMEO' 'SIERRA' 'TANGO' 'UNIFORM' 'VICTOR' 'WHISKEY' 'X-RAY' 'YANKEE' 'ZULU' 'alpha' 'bravo' 'charlie' 'delta' 'echo' 'foxtrot' 'golf' 'hotel' 'india' 'juliet' 'kilo' 'mike' 'november' 'oscar' 'papa' 'quebec' 'romeo' 'sierra' 'tango' 'uniform' 'victor' 'whiskey' 'x-ray' 'yankee' 'zulu')
-xprv_format="0488ADE4000000000000000000"		# hex string for a master xprv that an HD seed would derive for m/0 index, chain code, 00 and pubkey data and checksum bytes would follow.
+xprv_format="0488ADE4000000000000000000"		# hex string for a master xprv that an HD seed would derive for m/0 index, chain code, 00 and privkey data and checksum bytes would follow.
 
 cyan='\033[1;36m'
 yellow='\033[1;33m'
@@ -17,10 +17,10 @@ blue='\033[1;34m'
 nc='\033[0m' # No Color
 ######### Arrays
 key_entropy=()		# stores privacy keys' randomness
-xprv=()		# stores xprvs from privacy keys
+xprv=()			# stores xprvs from privacy keys
 secret_xprv=()		# stores secret xprvs derived from secret seeds
 chain_code=()		# stores secret chain codes
-privkey_data=()	# stores hprivate key data including leading 0 byte
+privkey_data=()		# stores hprivate key data including leading 0 byte
 cipher_xprv=()		# stores cipher xprvs
 
 paper_backup() {
@@ -37,7 +37,7 @@ paper_backup() {
 		fi		# end if statement
 		(( j++ ))	# increment counter
 	done < <(echo -n $1) | column -t -s ' '		# inserts parameter (a seed) into the while read -n1 loop, then format while loop output into columns with space as delineator
-		
+	
 	echo -e "\n\nWrite these 65 words down (case-sensitive) and Label them \"SEED $i\".\n\nIf you are only testing SecretWallet.sh you can skip writing these down.\nWhen you are finished press Enter."		# prompt user to hand-write
 	read -n1	# wait for any key press
 	clear		# clear terminal so user must type from paper backup
@@ -54,7 +54,8 @@ paper_backup() {
 		(( j++ ))
 	done < <(echo $1)
 	if [ "$retry" == '' ]; then		# if retry is blank, say key matches and exit function
-		echo -e "WIF Key $i Matches.\n\nPlace it in an envelope containing CD-R labeled \"SEED $i\".  Then press Enter to Continue."
+		echo -e "WIF Key $i Matches.\n\nPlace it in the envelope containing the CD-R labeled \"SEED $i\".\nThen press Enter to Continue."
+		read -n1
 	else
 		echo -e "\n***Fix the above errors on The PAPER Backup.***\nThen press Enter."
 		read -n1
@@ -73,13 +74,12 @@ fi
 read -n1
 }
 
-###############
+#######################
 # takes any length base58 string and echos the hex value
 ########################
 
-# loop thru each character of $1, assign that character to letter, the sed command spaces the digits so each is considered individually, find index (position) of letter in base58_alphabet, subtract 1 from result so echo output ranges from 0-57, store in base58num, set decrementor to number of characters of input, calculate sum of all base58 digits, store in big_num, convert big_num to hexadecimal echo to standard output
-
 base58_to_hex() {
+# loop thru each character of $1, assign that character to letter, the sed command spaces the digits so each is considered individually, find index (position) of letter in base58_alphabet, subtract 1 from result so echo output ranges from 0-57, store in base58num, set decrementor to number of characters of input, calculate sum of all base58 digits, store in big_num, convert big_num to hexadecimal echo to standard output
 	base58num=$(while read -n1 letter; do echo -n ' '$(( $(expr index "$base58_alphabet" "$letter") - 1 )); done < <(printf $1))
 	len=${#1}		# length of the base58check input.
 	big_num=$(for num in $base58num; do (( len-- )); echo "$num*58^$len" | BC_LINE_LENGTH=0 bc; done | paste -sd+ | BC_LINE_LENGTH=0 bc)
@@ -87,10 +87,10 @@ base58_to_hex() {
 }
 
 hex_to_base58check() {
-	hex="$1$(checksum $1)"
+	hex="$1$(checksum $1)"		# add checksum to input
 	base58num=$(echo 'obase=58;ibase=16;'$hex | BC_LINE_LENGTH=0 bc)
 	base58=$(for digit in $base58num; do
-		echo -n ${base58_alphabet:$(( 10#$digit )):1}
+		echo -n ${base58_alphabet:$(( 10#$digit )):1}		# convert to base58 letters and numbers
 	done)
 }
 
@@ -141,6 +141,7 @@ xor() {
 }
 
 checksum() {
+# perform double sha256 hash and take first 8 hex characters (4 bytes)
     xxd -p -r <<<"$1" | openssl dgst -sha256 -binary | openssl dgst -sha256 -binary | xxd -p -c 80 | head -c 8 | tr a-z A-Z
 }
 
@@ -175,12 +176,12 @@ for (( i = 0 ; i <= n ; i++ )); do			# loop thru idented steps n + 1 times
 		echo -e "\n\nCreating Secret Seed $k...\n"
 		echo -e "Key $j Entropy:  ${key_entropy[$j]}\nKey $i Entropy:  ${key_entropy[$i]}"
 		echo -e -n "Key $j ⊕  Key $i: "
-		key=$(xor ${key_entropy[$j]} ${key_entropy[$i]})
+		key=$(xor ${key_entropy[$j]} ${key_entropy[$i]})	# combine entropy from key j and i to make new key
 		echo $key		# prints result	
 		encode_seed 80${key}01		# WIF seeds have format: leading 0x80 byte, 32 entropy bytes, a 0x01 byte for compressed public keys
-		./bitcoin-cli createwallet secret$k false true "" false false false	# create a new blank wallet, do not load on startup
-		./bitcoin-cli -rpcwallet=secret$k sethdseed true "$base58"		# sets the HD seed of this wallet to secret HD seed created by combining two keys
-		./bitcoin-cli -rpcwallet=secret$k dumpwallet secret$k		# dumps wallet to get xprv from secretSeed
+		./bitcoin-cli createwallet secret$k false true "" false false false	# create a new blank wallet named secret, do not load on startup
+		./bitcoin-cli -rpcwallet=secret$k sethdseed true "$base58"		# sets the HD seed of this wallet to secret HD seed created by xoring
+		./bitcoin-cli -rpcwallet=secret$k dumpwallet secret$k			# dumps wallet to get xprv from secretSeed
 		secret_xprv[$k]=$(sed '6q;d' secret$k | tail -c112)			# find line 6 in wallet dump file, trim to xprv data, store in secret_xprv[]
 		secret_desc+=",${blue}${secret_xprv[$k]}${nc}/*"			# appends ",secret_xprv[]/*" to secret_desc, colors secret_xprv[] blue.
 		decode_xprv ${secret_xprv[$k]}		# converts xprv to hex
@@ -194,14 +195,17 @@ for (( i = 0 ; i <= n ; i++ )); do			# loop thru idented steps n + 1 times
 	done
 	if (( i > 0 )); then
 		xprv[$i]=$(sed '6q;d' $i | tail -c112)	# find line 6 in wallet dump file, trim line to xprv data, store in xprv[]
-		echo $seed > ~/Documents/seed$i
-		#paper_backup $seed		# have not decided to confirm words here or at the end.
+		echo $seed > ~/Documents/seed$i		# places seed backup in home/Documents/ folder
+		#paper_backup $seed			# have not decided if best to confirm words here or at the end.
 		echo -e "\n\nPrivacy ${yellow}Key $i${nc}'s Extended Private Masterkey: ${yellow}${xprv[$i]}${nc}"
 	fi
 done
 l=1
 add=1
-for (( i=2 ; i < m ; i++ )); do (( l += add )); (( add++ )); done	# calculate spend threshold l for secret descriptor multi, may differ from m but will be functionally equivalent.
+for (( i=2 ; i < m ; i++ )); do
+	(( l += add ))		# calculate spend threshold l for secret descriptor multi, may differ from m but will function equivalent.
+	(( add++ ))
+done	
 secret_desc="wsh(multi($l"$secret_desc
 secret_desc+="))"		# add closing parentheses
 echo -e "\n\n\n\nThis is your Extended Private Masterkey Secret Descriptor: $secret_desc\n"
@@ -241,25 +245,27 @@ echo -e "\nHow many keys do you wish to be required to spend funds from the $p k
 read -p "o=" o		# assign input to variable o
 echo -e "\n\n"
 cipher_desc+="))"		# add closing parentheses
-# Add the backup's privacy key's xpub (in plaintext) to the cipher descriptor so it appears to belong.  Then Display Descriptor and a test Deposit Address
+
+# Add the backup's privacy key's xprv (in plaintext) to the cipher descriptor so it appears to belong.  Then Display Descriptor and a test Deposit Address
 
 ##echo -e "This is your Extended Private Masterkey Cipher Descriptor without Privacy Keys' Extended Private Masterkeys added: $cipher_desc\n\n"
+# probably no use showing the cipher descriptor before privacy key xprvs have been added now that it's color coded.
 
-desc="wsh(multi($o"
-len=${#desc}
-cipher_desc=$desc$cipher_desc		# prepends wsh(multi($o to cipher_desc
+desc="wsh(multi($o"		# witness script hash, multi threshold o
+len=${#desc}			# length of desc in case o > 9 and shifts the digits.
+cipher_desc=$desc$cipher_desc	# prepends wsh(multi($o to cipher_desc
 for (( i = 1 ; i <= n ; i++ )); do
-	key_pos=$(( $RANDOM % (( k + 1 )) * 131 + len ))		# chooses a random position in the cipher descriptor to add the privacy key's xpub.
+	key_pos=$(( $RANDOM % (( k + 1 )) * 131 + len ))		# chooses a random position in the cipher descriptor to add the privacy key's xprv.
 	echo -e -n "This is your ${cyan}Cipher${nc} Extended Private Masterkey Descriptor with Privacy ${yellow}Key $i${nc}'s Extended Public Masterkey added: "
-	desc="${cipher_desc:0:$key_pos},${yellow}${xprv[$i]}${nc}/*${cipher_desc:$key_pos}"
+	desc="${cipher_desc:0:$key_pos},${yellow}${xprv[$i]}${nc}/*${cipher_desc:$key_pos}"		# adds ,xprv[]/* to the random position in descriptor, color yellow
 	echo -e $desc
 	if (( h == 1 )); then
-		desc=${desc//'\033[1;36m'}		# remove cyan
-		desc=${desc//'\033[1;33m'}		# remove yellow
+		desc=${desc//'\033[1;36m'}	# remove cyan
+		desc=${desc//'\033[1;33m'}	# remove yellow
 		desc=${desc//'\033[0m'}		# remove no color
-		./bitcoin-cli getdescriptorinfo "$desc" | sed '2q;d' | cut -d '"' -f4 > ~/Documents/Descriptor
-		# create blank descriptor wallet pubwallet.dat, disable prv keys for Watch-Only, no passphrase, avoid address reuse true, load on start-up true
+		./bitcoin-cli getdescriptorinfo "$desc" | sed '2q;d' | cut -d '"' -f4 > ~/Documents/Descriptor	# save Descriptor.txt in home/Documents/ folder
 		echo -e "\nThis is your Cipher Extended Public Masterkey Descriptor with Privacy Key $i's Extended Public Masterkey added: $(< ~/Documents/Descriptor)\n"
+		# create blank descriptor wallet pubwallet.dat, disable prv keys for Watch-Only, no passphrase, avoid address reuse true, load on start-up true
 		./bitcoin-cli createwallet "pubwallet$i" true true "" true true true
 		# import descriptor, scan from current block, set as active descriptor
 		./bitcoin-cli -rpcwallet="pubwallet$i" importdescriptors '[{"desc": "'$(< ~/Documents/Descriptor)'", "timestamp": "now", "active": true}]'		
@@ -273,7 +279,7 @@ for (( i = 1 ; i <= n ; i++ )); do
 		echo -e "${yellow}$i${nc} of $n Privacy ${yellow}Key${nc}s' Extended Public Masterkeys have been added.\n"
 	fi
 done
-if (( h >= n )); then	# TODO support all values h. they should reuse as many of the keys as possible so the max number of cipher descriptors are identical for better plausible deniability. and make new keys if h>n+1 (as we can reuse seed 0's xpub)
+if (( h >= n )); then	# TODO support all values h. they should reuse as many of the keys as possible so the max number of cipher descriptors are identical for better plausible deniability. and make new keys if h>n+1 (as we can reuse seed 0's xprv) new keys can be xor combos of seed 0 and a higher seed to maximize chance we can sign with them if we know encryption is used.
 	echo -e "This is your Extended Private Masterkey ${cyan}Cipher${nc} Descriptor with all Privacy ${yellow}Keys${nc}' Extended Public Masterkeys added: $desc\n\n"
 		desc=${desc//'\033[1;36m'}		# remove cyan
 		desc=${desc//'\033[1;33m'}		# remove yellow
@@ -286,7 +292,7 @@ if (( h >= n )); then	# TODO support all values h. they should reuse as many of 
 	./bitcoin-cli -rpcwallet="pubwallet" importdescriptors '[{"desc": "'$(< ~/Documents/Descriptor)'", "timestamp": "now", "active": true}]'		
 	./bitcoin-cli -rpcwallet="pubwallet" backupwallet pubwallet		# backup watch-only wallet as pubwallet.dat
 	clear -x
-	echo -e "\n\nThis is your Steganographic Cipher Descriptor:\n$(< ~/Documents/Descriptor)\n\nYou will need it to spend or watch the balance of this decoy wallet as well as to decrypt your secret descriptor.\n\nBurn $n CD-Rs of Descriptor.txt, label them 'Watch Only' and Print $n legible copies of Descriptor.txt located in your home/Documents/ folder. You will store both with each handwritten WIF NATO Privacy Key.\n\nWhen you have burned all $n CD-Rs, labled them \"Watch Only\" and verified all printed copies are legible, Press Any Key to continue."
+	echo -e "\n\nThis is your Steganographic Cipher Descriptor:\n$(< ~/Documents/Descriptor)\n\nYou will need it to spend or watch the balance of this decoy wallet as well as to decrypt your secret descriptor.\n\nBurn $n CD-Rs of Descriptor.txt, label them \"Watch Only\" and Print $n legible copies of Descriptor.txt located in your home/Documents/ folder. You will store both with each handwritten WIF NATO Privacy Key.\n\nWhen you have burned all $n CD-Rs, labled them \"Watch Only\" and verified all printed copies are legible, Press Any Key to continue."
 	read -n1	# waits for any key press while user prints
 	for (( i = 1 ; i <= n ; i++ )); do
 		echo -e "\nBurn seed$i.txt and Descriptor.txt to CD-R\n\nAlso in home/Documents/ folder find seed$i.txt and Descriptor.txt and Burn a CD-R with both files on it, label that disc \"SEED $i\" and store with a \"Watch Only\"  disc and your printed Descriptor.txt in an envelope.\n\nWhen you have burned the CD-R and placed all three in an envelope, Press Any Key to continue."
@@ -298,6 +304,10 @@ fi
 
 for (( i = 1 ; i <= n ; i++ )); do
 	paper_backup $(< ~/Documents/seed$i)
-done
+done # confirm the seed words.
+# It would be better for usage to do this first, as can confirm before a backup file is made or funds could be lost
+# but worse for testing as you can't see the all xprvs from earlier keys when the screen clears.
+# There is no way to "unclear" the screen. Short of launching a new terminal window in which to confirm your words in a different script.
+
 
 ##test_deposit $i  # TODO: prompt at end how many privacy keys and/or pairs of 2 they'd like to load and randomly draw from secret seed and key addresses until that number is reached, then shuffle and tell them to fund all addresses displayed without labeling them. the pairs of two should include 1 privacy key that was loaded ie key1,key2,key3... pair 12, pair 13, pair 23... etc  SecretRestore.sh spends seeds for an m=2
