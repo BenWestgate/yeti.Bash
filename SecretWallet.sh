@@ -5,6 +5,11 @@
 # Then paste the following command:
 # ./SecretWallet.sh
 
+# If home/.bitcoin/wallets/ folder is not empty or bitcoin/bin/ folder has walletdump files manually move them out of the way first.
+# To rerun script and get different Privacy keys you must kill bitcoind task or restart your machine, In addition to moving the above files.
+
+# CONSTANTS
+
 # create base58 alphabet, remove spaces between characters, store in variable base58_alphabet
 base58_alphabet=$(echo {1..9} {A..H} {J..N} {P..Z} {a..k} {m..z} | sed 's/ //g')
 # store the NATO Alphabet corresponding to base58_alphabet as array to_nato
@@ -22,6 +27,8 @@ secret_xprv=()		# stores secret xprvs derived from secret seeds
 chain_code=()		# stores secret chain codes
 privkey_data=()		# stores hprivate key data including leading 0 byte
 cipher_xprv=()		# stores cipher xprvs
+
+# FUNCTIONS
 
 paper_backup() {
 	j=1		# j is counter since this will be used inside another loop,
@@ -147,7 +154,8 @@ checksum() {
 
 # Begin Execution of Script here
 
-gnome-terminal -- ./bitcoind		# Launch the Bitcoin Daemon in a second terminal window, necessary to use Bitcoin-cli command line interface in this script. If terminal fails in your linux desktop, right click in the bitcoin/bin folder open terminal and type "./bitcoind"
+# If terminal fails to open your linux desktop, right click in the bitcoin/bin folder open terminal and type "./bitcoind"
+gnome-terminal -- ./bitcoind		# Launch the Bitcoin Daemon in a second terminal window, necessary to use Bitcoin-cli command line interface in this script. 
 clear
 echo -e "Secret Bitcoin Multi-signature Wallet Generator by Westgate Labs, LLC.\n\n\nWhen the other terminal window has been open several seconds, press Enter to continue."
 read -n1
