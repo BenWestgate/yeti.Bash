@@ -12,3 +12,6 @@ Suitable for Storing $50k to $20M of Bitcoin when executed on a clean always off
 Seed words are backed up in a format 100% compatible with Yeti Wallets
 
 Find original here: https://github.com/JWWeatherman/yeticold
+
+**SecretWallet.sh**
+Creates an Encrypted Secret Wallet and Descriptor in a manner so that it is not possible to tell the wallet has been encrypted until a watch threshold of any 2 backups is gathered.  Backups look like regular yeti or CustomWallet.sh paper backups
