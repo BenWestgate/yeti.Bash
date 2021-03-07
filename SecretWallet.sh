@@ -6,7 +6,7 @@
 # ./SecretWallet.sh
 
 # If home/.bitcoin/wallets/ folder is not empty or bitcoin/bin/ folder has walletdump files manually move them out of the way first.
-# To rerun script and get different Privacy keys you must kill bitcoind task or restart your machine, In addition to moving the above files.
+# To rerun script and get different Privacy keys you must close bitcoin core or restart your machine, In addition to moving the above files.
 
 # CONSTANTS
 
@@ -24,8 +24,8 @@ nc='\033[0m' # No Color
 key_entropy=()		# stores privacy keys' randomness
 xprv=()			# stores xprvs from privacy keys
 secret_xprv=()		# stores secret xprvs derived from secret seeds
-chain_code=()		# stores secret chain codes
-privkey_data=()		# stores hprivate key data including leading 0 byte
+chain_code=()		# stores secret chain codes from secret extended keys
+privkey_data=()		# stores private key data including leading 0 byte from secret xprvs
 cipher_xprv=()		# stores cipher xprvs
 
 # FUNCTIONS
@@ -155,9 +155,9 @@ checksum() {
 # Begin Execution of Script here
 
 # If terminal fails to open your linux desktop, right click in the bitcoin/bin folder open terminal and type "./bitcoind"
-gnome-terminal -- ./bitcoind		# Launch the Bitcoin Daemon in a second terminal window, necessary to use Bitcoin-cli command line interface in this script. 
+gnome-terminal -- ./bitcoin-qt -server		# Launch the Bitcoin Daemon in a second terminal window, necessary to use Bitcoin-cli command line interface in this script. 
 clear
-echo -e "Secret Bitcoin Multi-signature Wallet Generator by Westgate Labs, LLC.\n\n\nWhen the other terminal window has been open several seconds, press Enter to continue."
+echo -e "Secret Bitcoin Multi-signature Wallet Generator by Westgate Labs, LLC.\n\n\nWhen Bitcoin core has loaded, press Enter to continue."
 read -n1
 echo -e "Disconnect Network Cable\n\nIf you are using a network cable or laptop power cable unplug them now.\nAlso unplug all unnecessary peripherals, only a CD-R drive and printer are needed, if these are not yet installed, do so now.\nBecause this device will be used to generate private keys your Network Connection will be disabled when you press Enter.\n\nDo not reconnect this device to a network until you have erased the hard drive.\nFor Testing type 'nmcli networking on' afterwards in a terminal get back online."
 read -n1
