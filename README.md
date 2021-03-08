@@ -20,8 +20,6 @@ Put CreateWallet.sh in bitcoin/bin folder
 
 Right-click in folder, select "Open in Terminal"
 
-Enter ./bitcoind
-
 Open a new Terminal
 
 Enter "chmod +x CreateWallet.sh"
@@ -29,7 +27,8 @@ Enter "chmod +x CreateWallet.sh"
 Enter ./CreateWallet.sh and follow instructions on screen.
 
 
-To make a non 3-of-7 multisig wallet, use instructions above with CustomWallet.sh not CreateWallet.sh
+**To make a non 3-of-7 multisig wallet, use instructions above with CustomWallet.sh not CreateWallet.sh
 
+**To make a multisig wallet with additional randomness from coin flips or dice rolls, use instructions above with CoinDiceWallet.sh
 
-To make a multisig wallet with additional randomness from coin flips or dice rolls, use instructions above with CoinDiceWallet.sh 
+**To Make or Restore a Yeti Level One style single signature wallet for spending use LevelOne.sh
