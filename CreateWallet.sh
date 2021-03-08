@@ -4,9 +4,10 @@
 # chmod +x CreateWallet.sh
 # Then paste the following command:
 # ./CreateWallet.sh
+# Be sure your system has either Brasero or Xfburn CD burning software installed and you can print.
 
 m=3		# yeti wallet recommended value of 3 for the spending threshold
-n=7		# yeti wallet recommened value of 7 for the number of signers
+n=3		# yeti wallet recommened value of 7 for the number of signers
 # create base58 alphabet, remove spaces between characters, store in variable base58_alphabet
 base58_alphabet=$(echo {1..9} {A..H} {J..N} {P..Z} {a..k} {m..z} | sed 's/ //g')
 # store the NATO Alphabet corresponding to base58_alphabet as array to_nato
@@ -45,15 +46,17 @@ backup() {
 		(( j++ ))
 	done < <(echo $1)
 	if [ "$retry" == '' ]; then		# if retry is blank, say key matches and exit function
-		echo -e "WIF Key $i Matches.\n\n\nMake a Digital Backup\n\nIf your system has xfburn or brasero a new data project has opened with the files you need to burn to disc. Otherwise, burn 1 CD-R with xprvwallet$i, Descriptor.txt and yetiseed$i.txt from your home/Documents/ folder, label the disc \"SEED $i\", then place the written seed words and disc in non-descript envelope.\nFor Testing with small amounts, you may use USB flash drives but these cost more, are not durable enough for long-term storage, and make a more conspicuous seed packet.\nWhen finished Press Enter to Continue."
+		echo -e "WIF Key $i Matches.\n\n\nMake a Digital Backup\n\nLabel a blank CD-R \"SEED$i\", then insert it into your CD drive.\nA data CD project will open with the 3 files needed on this disc once you press Enter. Click 'Burn'.\nClose the burner software when finished.\n\nThe files xprvwallet$i, yetiseed$i and Descriptor from your home/Documents/ folder will be burned."
+		read -n1
 		brasero -d ~/Documents/xprvwallet$i ~/Documents/yetiseed$i ~/Documents/Descriptor	# launches a data project in brasero with the 3 files to burn
 		xfburn -d ~/Documents/xprvwallet$i ~/Documents/yetiseed$i ~/Documents/Descriptor 	# launches a data project in xfburn with the 3 files to burn
+		echo -e "\n\nPlace the written seed words and \"SEED $i\" disc in a non-descript envelope.\nFor Testing with small amounts, you may use USB flash drives but these aren't durable enough for long-term storage and make a thick, conspicuous seed packet.\nPress Enter to Continue."
 		read -n1
 	else
 		echo -e "\n***Fix the above errors on The PAPER Backup.***\nThen press Enter."
 		read -n1
 		clear
-		paper_backup $1		# if retry is true, call the function again.
+		backup $1		# if retry is true, call the function again.
 	fi
 }
 
@@ -70,7 +73,6 @@ gnome-terminal -- ./bitcoin-qt -server		# Launch the Bitcoin GUI from a second t
 read -n1
 
 # Seed Generation and Descriptor Creation
-
 echo -n "wsh(multi($m" > xprv_desc			# form beginning of pay-to-witness-script-hash multisig descriptor with spend threshold m signatures, save string as descriptor
 for (( i = 1 ; i <= $n ; i++ )); do			# loop thru idented steps n times
 	./bitcoin-cli createwallet $i			#create a wallet
@@ -97,8 +99,9 @@ echo -n "))" >> xprv_desc				# append )) to close parentheses from wsh(multi( an
 # Get individual xpubs so they can be replaced one by one with corresponding xprv in descriptors for the n private key containing wallets and their backups
 
 for ((i = 1 ; i <= $n ; i++)); do		# loop thru indented n times
+	echo "Creating Private Wallet $i..."	
 	cut -d "," -f$(( i + 1 )) < ~/Documents/Descriptor | head -c111 > xpub$i			# chop descriptor apart by commas, find each xpub starting in field 2, trim to xpub data, save as xpub
-	sed "s/$(< xpub$i)/$(< xprv$i)/" descriptor | cut -d "#" -f1 > desc_with_xprv$i	# replace xpub with xprv in descriptor, remove checksum, save as desc_with_xprv
+	echo -n $(sed "s/$(< xpub$i)/$(< xprv$i)/" ~/Documents/Descriptor | cut -d "#" -f1) > desc_with_xprv$i	# replace xpub with xprv in descriptor, remove checksum, save as desc_with_xprv
 	echo -n "#$(./bitcoin-cli getdescriptorinfo "$(< desc_with_xprv$i)" | sed '3q;d' | cut -d '"' -f4)" >> desc_with_xprv$i		# call getdescriptorinfo, get line 3, cut by ", select field 4 which is checksum, append #checksum to desc_with_xprv
 	./bitcoin-cli createwallet "xprvwallet$i" false true "" false true true		# create blank descriptor wallet xprvwallet, disable private keys false, no passphrase, avoid address reuse false, load on startup true
 	./bitcoin-cli -rpcwallet=xprvwallet$i importdescriptors '[{"desc": "'$(< desc_with_xprv$i)'", "timestamp": "now", "active": true}]'		# import desc_with_xprv to above wallet, scan from now, set as active descriptor in this wallet
@@ -107,12 +110,18 @@ for ((i = 1 ; i <= $n ; i++)); do		# loop thru indented n times
 	done
 
 # Display Descriptor and a test Deposit Address
+clear -x
+echo -e "\nThis is your Descriptor:\n\n$(< ~/Documents/Descriptor)\n\nYou will need it to spend or watch the balance of your wallet.\n\n\nPrint a Paper Backup\n\nPrint 7 copies of Descriptor located in your home/Documents/ folder and store a copy with each handwritten WIF NATO seed.\n\nLibreOffice Writer will open the file when you press Enter. Press Ctrl+P in LibreOffice Writer to Print. Close LibreOffice Writer when done by pressing Alt+F4."
+read -n1
 
-echo -e "\n\nThis is your Descriptor:\n\n$(< ~/Documents/Descriptor)\n\nYou will need it to spend or watch the balance of your wallet.\n\nPrint and Burn 7 copies of Descriptor and pubwallet located in your home/Documents/ folder, label the discs \"Watch Wallet\" and store a copy with each handwritten WIF NATO seed.\nIf you have Brasero or Xfburn on this machine a new data project which you need to write 7 discs of has opened.\nWhen you have verified all printed copies are legible, and burned the discs\nPress Any Key to continue."
+libreoffice --writer ~/Documents/Descriptor		# launches libreoffice writer to print the descriptor
+echo -e "\n\nMake a Digital Backup\n\nA new data CD project will open with the 2 files you need to burn to 7 discs once you press enter. Click 'Burn'.\nClose the burner software when finished. Label the discs \"Watch Only.\"\n\nThe files pubwallet and Descriptor from your home/Documents/ folder will be burned.\n\n"
+read -n1
 brasero -d ~/Documents/pubwallet ~/Documents/Descriptor	# launches a data project in brasero with the 3 files to burn
 xfburn -d ~/Documents/pubwallet ~/Documents/Descriptor	# launches a data project in xfburn with the 3 files to burn
-libreoffice --writer ~/Documents/Descriptor		# launches libreoffice writer to print the descriptor
+echo -e "\nWhen you have verified all printed copies are legible, burned and labeled the discs, place one paper descriptor and one \"Watch Only\" disc into each envelope containing a handwritten seed.\nPress Any Key to continue."
+
 read -n1		# waits for any key press while user prints & burns
 clear -x		# clears screen
-echo -e "Make a Test Deposit\n\nRecommended: Make a ~0.001 BTC test deposit and practice spending from your new multi-signature wallet before Geographically Distributing your seed packets and storing significant funds.\n\nPress Alt+Tab to open Bitcoin Core, select pubwallet from the dropdown menu on upper right, then click 'Recieve' and 'Create new recieving address'. \n\nWhen you have sent the test deposit, shutdown this PC and insert the disc labled \"Watch Wallet\" into your Online PC."
+echo -e "Make a Test Deposit\n\nRecommended: Make a ~0.001 BTC test deposit and practice spending from your new multi-signature wallet before Geographically Distributing your seed packets and storing significant funds.\n\nPress Alt+Tab to open Bitcoin Core, select pubwallet from the dropdown menu on upper right, then click 'Recieve' and 'Create new recieving address'. \n\nWhen you have sent the test deposit, shutdown this PC and insert the disc labled \"Watch Only\" into your Online PC."
 read -n1
