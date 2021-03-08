@@ -17,7 +17,7 @@ to_nato=('ONE' 'TWO' 'THREE' 'FOUR' 'FIVE' 'SIX' 'SEVEN' 'EIGHT' 'NINE' 'ALPHA' 
 backup() {
 	j=1		# j is counter since this will be used inside another loop,
 	sum=0		# sum holds the sum of the base 58 values to create a 5th checksum column of seed words for yeti compatibility and easier error recovery
-	echo -e "\n\nWIF NATO Privacy Key $i\n\n"
+	echo -e "\n\nWIF NATO Seed $i\n\n"
 	while read -n1 letter; do		# loop thru each character of seed, assign character to letter, sed command spaces digits so each is considered individually		
 		num=$(( $(expr index "$base58_alphabet" "$letter") - 1))		# find index (position) of letter in base58_alphabet 1-58
 		(( sum += num ))		# increase sum by num - 1
@@ -45,7 +45,9 @@ backup() {
 		(( j++ ))
 	done < <(echo $1)
 	if [ "$retry" == '' ]; then		# if retry is blank, say key matches and exit function
-		echo -e "WIF Key $i Matches.\n\n\nMake a Digital Backup\n\nBurn a CD-R with Descriptor.txt and yetiseed$i.txt from your home/Documents/ folder, label the disc \"SEED $i\", then place the written seed words and disc in an envelope.\n\nThen press Enter to Continue."
+		echo -e "WIF Key $i Matches.\n\n\nMake a Digital Backup\n\nIf your system has xfburn or brasero a new data project has opened with the files you need to burn to disc. Otherwise, burn 1 CD-R with xprvwallet$i, Descriptor.txt and yetiseed$i.txt from your home/Documents/ folder, label the disc \"SEED $i\", then place the written seed words and disc in non-descript envelope.\nFor Testing with small amounts, you may use USB flash drives but these cost more, are not durable enough for long-term storage, and make a more conspicuous seed packet.\nWhen finished Press Enter to Continue."
+		brasero -d ~/Documents/xprvwallet$i ~/Documents/yetiseed$i ~/Documents/Descriptor	# launches a data project in brasero with the 3 files to burn
+		xfburn -d ~/Documents/xprvwallet$i ~/Documents/yetiseed$i ~/Documents/Descriptor 	# launches a data project in xfburn with the 3 files to burn
 		read -n1
 	else
 		echo -e "\n***Fix the above errors on The PAPER Backup.***\nThen press Enter."
@@ -106,7 +108,10 @@ for ((i = 1 ; i <= $n ; i++)); do		# loop thru indented n times
 
 # Display Descriptor and a test Deposit Address
 
-echo -e "\n\nThis is your Descriptor:\n\n$(< ~/Documents/Descriptor)\n\nYou will need it to spend or watch the balance of your wallet.\n\nPrint and Burn $n copies of Descriptor.txt located in your home/Documents/ folder, label the discs \"Watch Wallet\" and store a copy with each handwritten WIF NATO seed.\n\nWhen you have verified all printed copies are legible, Press Any Key to continue."
+echo -e "\n\nThis is your Descriptor:\n\n$(< ~/Documents/Descriptor)\n\nYou will need it to spend or watch the balance of your wallet.\n\nPrint and Burn 7 copies of Descriptor and pubwallet located in your home/Documents/ folder, label the discs \"Watch Wallet\" and store a copy with each handwritten WIF NATO seed.\nIf you have Brasero or Xfburn on this machine a new data project which you need to write 7 discs of has opened.\nWhen you have verified all printed copies are legible, and burned the discs\nPress Any Key to continue."
+brasero -d ~/Documents/pubwallet ~/Documents/Descriptor	# launches a data project in brasero with the 3 files to burn
+xfburn -d ~/Documents/pubwallet ~/Documents/Descriptor	# launches a data project in xfburn with the 3 files to burn
+libreoffice --writer ~/Documents/Descriptor		# launches libreoffice writer to print the descriptor
 read -n1		# waits for any key press while user prints & burns
 clear -x		# clears screen
 echo -e "Make a Test Deposit\n\nRecommended: Make a ~0.001 BTC test deposit and practice spending from your new multi-signature wallet before Geographically Distributing your seed packets and storing significant funds.\n\nPress Alt+Tab to open Bitcoin Core, select pubwallet from the dropdown menu on upper right, then click 'Recieve' and 'Create new recieving address'. \n\nWhen you have sent the test deposit, shutdown this PC and insert the disc labled \"Watch Wallet\" into your Online PC."
