@@ -7,7 +7,7 @@
 # Be sure your system has either Brasero or Xfburn CD burning software installed and you can print.
 
 m=3		# yeti wallet recommended value of 3 for the spending threshold
-n=3		# yeti wallet recommened value of 7 for the number of signers
+n=7		# yeti wallet recommened value of 7 for the number of signers
 # create base58 alphabet, remove spaces between characters, store in variable base58_alphabet
 base58_alphabet=$(echo {1..9} {A..H} {J..N} {P..Z} {a..k} {m..z} | sed 's/ //g')
 # store the NATO Alphabet corresponding to base58_alphabet as array to_nato
