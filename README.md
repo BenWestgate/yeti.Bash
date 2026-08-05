@@ -1,17 +1,19 @@
 # yeti.Bash
-A port of Yeticold.com to Shell 
+An experimental port of Yeticold.com to Shell 
 
 Less than 100 lines of code stand between you and Bitcoin Core v0.21
 
 Optimized for code review and auditability
 
-Requires no dependences outside of bitcoin core and uses only standard gnu commands so can be run fully offline; an improvement on Yeti Wallet Level 3 security model
+Requires no dependencies outside of bitcoin core and uses only standard gnu commands so can be run fully offline; an improvement on Yeti Wallet Level 3 security model
 
-Suitable for Storing $50k to $20M of Bitcoin when executed on a clean always offline PC from a Linux Live OS.  (currently tested on Ubuntu 20.04 LTS, Xubuntu, Manjaro)
+Currently tested on Ubuntu 20.04 LTS, Xubuntu, Manjaro
 
 Seed words are backed up on paper in a format 100% compatible with Yeti Wallets
 
 Find original here: https://github.com/JWWeatherman/yeticold
+
+For real funds in a trust minimized multi-signature setup follow: https://github.com/bitcoin/bitcoin/blob/master/doc/multisig-tutorial.md
 
 
 How to Use:
